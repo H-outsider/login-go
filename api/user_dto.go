@@ -13,9 +13,15 @@ type LoginRequest struct {
 	Password string `json:"password" binding:"required"`
 }
 
-// UserResponse 返回给前端的用户信息（脱敏，绝对不能包含密码）
+// UserResponse 返回给前端的用户信息
 type UserResponse struct {
 	ID       int64  `json:"id"`
 	Username string `json:"username"`
 	Email    string `json:"email"`
+}
+
+// LoginResponse 登录成功后的返回结果
+type LoginResponse struct {
+	Token string       `json:"token"` // 发放给前端的 JWT
+	User  UserResponse `json:"user"`  // 用户基本信息（复用之前的 UserResponse）
 }
