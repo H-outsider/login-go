@@ -10,7 +10,15 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Register 处理用户注册请求
+// Register godoc
+// @Summary 用户注册
+// @Description 提交用户名、密码和邮箱进行注册
+// @Tags 用户模块
+// @Accept json
+// @Produce json
+// @Param req body api.RegisterRequest true "注册参数"
+// @Success 200 {object} map[string]interface{} "注册成功"
+// @Router /register [post]
 func Register(c *gin.Context) {
 	var req api.RegisterRequest
 	// ShouldBindJSON 会自动解析前端传来的 JSON，并根据 binding 标签进行校验
@@ -28,7 +36,15 @@ func Register(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "注册成功"})
 }
 
-// Login 处理用户登录请求
+// Login godoc
+// @Summary 用户登录
+// @Description 登录成功后返回 JWT Token
+// @Tags 用户模块
+// @Accept json
+// @Produce json
+// @Param req body api.LoginRequest true "登录参数"
+// @Success 200 {object} api.LoginResponse "登录成功"
+// @Router /login [post]
 func Login(c *gin.Context) {
 	var req api.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -57,7 +73,14 @@ func Login(c *gin.Context) {
 	})
 }
 
-// GetProfile 测试接口：获取当前登录用户信息 (必须携带 Token 才能访问)
+// GetProfile godoc
+// @Summary 获取当前用户信息
+// @Description 这是一个需要 Token 鉴权的受保护接口
+// @Tags 用户模块
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{} "请求成功"
+// @Router /profile [get]
 func GetProfile(c *gin.Context) {
 	// 这里的 "userID" 和 "username" 是我们在 jwt_auth.go 中间件里解析后塞入 Context 的
 	userID, _ := c.Get("userID")

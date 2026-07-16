@@ -7,9 +7,18 @@ import (
 	"login/internal/server"
 )
 
+// @title 登录系统 API 文档
+// @version 1.0
+// @description 基于 Gin + GORM 实现的带有 JWT 鉴权的登录系统
+// @host localhost:8080
+// @BasePath /api
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
 func main() {
 	// 1. 初始化数据库连接 (GORM)
-	// 如果您加了 DB.AutoMigrate(&model.User{})，这一步还会自动帮您建表
+	// 如果您在 InitDB 中加了 DB.AutoMigrate(&model.User{})，这一步会自动帮您建表
 	data.InitDB()
 
 	// 2. 初始化路由引擎 (Gin)
