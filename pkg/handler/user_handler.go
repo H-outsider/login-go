@@ -10,6 +10,16 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// UserHandler 控制层对象，内部持有业务逻辑层 (Service) 的引用
+type UserHandler struct {
+	svc *service.UserService
+}
+
+// NewUserHandler 构造函数，用于依赖注入
+func NewUserHandler(svc *service.UserService) *UserHandler {
+	return &UserHandler{svc: svc}
+}
+
 // Register godoc
 // @Summary 用户注册
 // @Description 提交用户名、密码和邮箱进行注册
@@ -19,7 +29,7 @@ import (
 // @Param req body api.RegisterRequest true "注册参数"
 // @Success 200 {object} map[string]interface{} "注册成功"
 // @Router /register [post]
-func Register(c *gin.Context) {
+func (h *UserHandler) Register(c *gin.Context) {
 	var req api.RegisterRequest
 	// ShouldBindJSON 会自动解析前端传来的 JSON，并根据 binding 标签进行校验
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -27,8 +37,8 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	// 调用 Service 层业务逻辑
-	if err := service.RegisterService(req); err != nil {
+	// 【核心改变】：调用注入进来的 h.svc 对象的方法
+	if err := h.svc.RegisterService(req); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -45,15 +55,15 @@ func Register(c *gin.Context) {
 // @Param req body api.LoginRequest true "登录参数"
 // @Success 200 {object} api.LoginResponse "登录成功"
 // @Router /login [post]
-func Login(c *gin.Context) {
+func (h *UserHandler) Login(c *gin.Context) {
 	var req api.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "参数校验失败"})
 		return
 	}
 
-	// 1. 调用 Service 进行账号密码校验
-	userResp, err := service.LoginService(req)
+	// 1. 【核心改变】：调用注入进来的 h.svc 对象的方法进行账号密码校验
+	userResp, err := h.svc.LoginService(req)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
@@ -81,7 +91,7 @@ func Login(c *gin.Context) {
 // @Security BearerAuth
 // @Success 200 {object} map[string]interface{} "请求成功"
 // @Router /profile [get]
-func GetProfile(c *gin.Context) {
+func (h *UserHandler) GetProfile(c *gin.Context) {
 	// 这里的 "userID" 和 "username" 是我们在 jwt_auth.go 中间件里解析后塞入 Context 的
 	userID, _ := c.Get("userID")
 	username, _ := c.Get("username")

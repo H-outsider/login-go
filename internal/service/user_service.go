@@ -9,10 +9,22 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// UserService 定义业务逻辑对象，内部持有数据仓储层 (Repo) 的引用
+type UserService struct {
+	repo *data.UserRepository
+}
+
+// NewUserService 构造函数，用于依赖注入
+func NewUserService(repo *data.UserRepository) *UserService {
+	return &UserService{repo: repo}
+}
+
 // RegisterService 处理用户注册逻辑
-func RegisterService(req api.RegisterRequest) error {
+// 变成 UserService 对象的方法
+func (s *UserService) RegisterService(req api.RegisterRequest) error {
 	// 1. 检查用户是否已存在
-	existUser, err := data.FindUserByUsername(req.Username)
+	// 【核心改变】：使用注入进来的 s.repo 对象调用方法
+	existUser, err := s.repo.FindUserByUsername(req.Username)
 	if err != nil {
 		return err // 数据库查询出错
 	}
@@ -34,13 +46,16 @@ func RegisterService(req api.RegisterRequest) error {
 		Email:    req.Email,
 	}
 
-	return data.CreateUser(&newUser)
+	// 【核心改变】：使用 s.repo
+	return s.repo.CreateUser(&newUser)
 }
 
 // LoginService 处理用户登录逻辑
-func LoginService(req api.LoginRequest) (*api.UserResponse, error) {
+// 变成 UserService 对象的方法
+func (s *UserService) LoginService(req api.LoginRequest) (*api.UserResponse, error) {
 	// 1. 根据用户名查找用户
-	user, err := data.FindUserByUsername(req.Username)
+	// 【核心改变】：使用 s.repo
+	user, err := s.repo.FindUserByUsername(req.Username)
 	if err != nil {
 		return nil, err
 	}
