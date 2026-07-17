@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	"login/api"
+	"login/internal/auth"
 	"login/internal/service"
-	"login/pkg/jwt"
 
 	"github.com/gin-gonic/gin"
 )
@@ -13,11 +13,15 @@ import (
 // UserHandler 控制层对象，内部持有业务逻辑层 (Service) 的引用
 type UserHandler struct {
 	svc *service.UserService
+	jwt *auth.JWTManager
 }
 
 // NewUserHandler 构造函数，用于依赖注入
-func NewUserHandler(svc *service.UserService) *UserHandler {
-	return &UserHandler{svc: svc}
+func NewUserHandler(svc *service.UserService, jwtManager *auth.JWTManager) *UserHandler {
+	return &UserHandler{
+		svc: svc,
+		jwt: jwtManager,
+	}
 }
 
 // Register godoc
@@ -31,13 +35,11 @@ func NewUserHandler(svc *service.UserService) *UserHandler {
 // @Router /register [post]
 func (h *UserHandler) Register(c *gin.Context) {
 	var req api.RegisterRequest
-	// ShouldBindJSON 会自动解析前端传来的 JSON，并根据 binding 标签进行校验
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "参数校验失败: " + err.Error()})
 		return
 	}
 
-	// 【核心改变】：调用注入进来的 h.svc 对象的方法
 	if err := h.svc.RegisterService(req); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -62,21 +64,18 @@ func (h *UserHandler) Login(c *gin.Context) {
 		return
 	}
 
-	// 1. 【核心改变】：调用注入进来的 h.svc 对象的方法进行账号密码校验
 	userResp, err := h.svc.LoginService(req)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 
-	// 2. 校验通过，签发 JWT Token
-	token, err := jwt.GenerateToken(userResp.ID, userResp.Username)
+	token, err := h.jwt.GenerateToken(userResp.ID, userResp.Username)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "系统异常，生成 Token 失败"})
 		return
 	}
 
-	// 3. 组装最终格式返回给前端
 	c.JSON(http.StatusOK, api.LoginResponse{
 		Token: token,
 		User:  *userResp,
@@ -92,7 +91,6 @@ func (h *UserHandler) Login(c *gin.Context) {
 // @Success 200 {object} map[string]interface{} "请求成功"
 // @Router /profile [get]
 func (h *UserHandler) GetProfile(c *gin.Context) {
-	// 这里的 "userID" 和 "username" 是我们在 jwt_auth.go 中间件里解析后塞入 Context 的
 	userID, _ := c.Get("userID")
 	username, _ := c.Get("username")
 

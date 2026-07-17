@@ -3,6 +3,8 @@ package main
 import (
 	"log"
 
+	"login/internal/auth"
+	"login/internal/config"
 	"login/internal/data"
 	"login/internal/server"
 )
@@ -17,17 +19,15 @@ import (
 // @in header
 // @name Authorization
 func main() {
-	// 1. 初始化数据库连接 (GORM)
-	// 如果您在 InitDB 中加了 DB.AutoMigrate(&model.User{})，这一步会自动帮您建表
-	data.InitDB()
+	cfg := config.Load()
 
-	// 2. 初始化路由引擎 (Gin)
-	r := server.SetupRouter()
+	db := data.InitDB(cfg.DBDSN)
+	jwtManager := auth.NewJWTManager(cfg.JWTSecret, cfg.JWTIssuer, cfg.JWTTTL)
+	r := server.SetupRouter(db, jwtManager)
 
-	log.Println("====== 登录系统服务启动成功，监听端口: 8080 ======")
+	log.Printf("====== 登录系统服务启动成功，监听地址: %s ======", cfg.HTTPAddr)
 
-	// 3. 启动并监听 8080 端口，阻塞主进程
-	if err := r.Run(":8080"); err != nil {
+	if err := r.Run(cfg.HTTPAddr); err != nil {
 		log.Fatalf("启动 HTTP 服务失败: %v", err)
 	}
 }
