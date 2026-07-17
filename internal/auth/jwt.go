@@ -45,6 +45,9 @@ func (m *JWTManager) GenerateToken(userID int64, username string) (string, error
 // ParseToken 解析并校验 JWT Token
 func (m *JWTManager) ParseToken(tokenString string) (*Claims, error) {
 	token, err := jwtlib.ParseWithClaims(tokenString, &Claims{}, func(token *jwtlib.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwtlib.SigningMethodHMAC); !ok {
+			return nil, errors.New("无效的签名算法")
+		}
 		return m.secret, nil
 	})
 	if err != nil {

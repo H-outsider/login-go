@@ -20,8 +20,15 @@ import (
 // @name Authorization
 func main() {
 	cfg := config.Load()
+	if err := cfg.Validate(); err != nil {
+		log.Fatalf("配置错误: %v", err)
+	}
 
-	db := data.InitDB(cfg.DBDSN)
+	db, err := data.InitDB(cfg.DBDSN)
+	if err != nil {
+		log.Fatalf("初始化数据库失败: %v", err)
+	}
+
 	jwtManager := auth.NewJWTManager(cfg.JWTSecret, cfg.JWTIssuer, cfg.JWTTTL)
 	r := server.SetupRouter(db, jwtManager)
 

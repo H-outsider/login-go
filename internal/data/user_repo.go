@@ -4,6 +4,7 @@ import (
 	"errors"
 	"login/internal/data/model"
 
+	mysqlDriver "github.com/go-sql-driver/mysql"
 	"gorm.io/gorm"
 )
 
@@ -42,5 +43,14 @@ func (r *UserRepository) FindUserByUsername(username string) (*model.User, error
 func (r *UserRepository) CreateUser(user *model.User) error {
 	// 相当于执行: INSERT INTO users ...
 	// 【核心改变】：使用 r.db
-	return r.db.Create(user).Error
+	err := r.db.Create(user).Error
+	if err == nil {
+		return nil
+	}
+
+	var mysqlErr *mysqlDriver.MySQLError
+	if errors.As(err, &mysqlErr) && mysqlErr.Number == 1062 {
+		return ErrDuplicateKey
+	}
+	return err
 }
